@@ -5,14 +5,14 @@
 int main(int argc, char *argv[], char *envp[]) {
   @autoreleasepool {
     NSTask *task = [NSTask new];
-    task.launchPath = @"/usr/bin/uicache";
+    task.launchPath = @"/var/jb/usr/bin/uicache";
 
     BOOL isRemoving = [NSProcessInfo.processInfo.processName containsString:@"prerm"];
     BOOL isUpgrading = strstr(argv[1], "upgrade");
 
     if (isRemoving || isUpgrading) {
       NSArray *fileList =
-          [[NSString stringWithContentsOfFile:@"/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
+          [[NSString stringWithContentsOfFile:@"/var/jb/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
                                      encoding:NSUTF8StringEncoding
                                         error:nil] componentsSeparatedByString:@"\n"];
       NSInteger appPathIndex =
@@ -32,15 +32,15 @@ int main(int argc, char *argv[], char *envp[]) {
     NSString *randomName = [[NSUUID UUID].UUIDString componentsSeparatedByString:@"-"].firstObject;
 
     NSMutableDictionary *appInfo = [NSMutableDictionary
-        dictionaryWithContentsOfFile:@"/Applications/vnodebypass.app/Info.plist"];
+        dictionaryWithContentsOfFile:@"/var/jb/Applications/vnodebypass.app/Info.plist"];
     appInfo[@"CFBundleExecutable"] = randomName;
-    [appInfo writeToFile:@"/Applications/vnodebypass.app/Info.plist" atomically:YES];
+    [appInfo writeToFile:@"/var/jb/Applications/vnodebypass.app/Info.plist" atomically:YES];
 
     NSArray *renames = @[
-      @[ @"/usr/bin/vnodebypass", @"/usr/bin/%@" ],
-      @[ @"/Applications/vnodebypass.app/vnodebypass", @"/Applications/vnodebypass.app/%@" ],
-      @[ @"/Applications/vnodebypass.app", @"/Applications/%@.app" ],
-      @[ @"/usr/share/vnodebypass", @"/usr/share/%@" ]
+      @[ @"/var/jb/usr/bin/vnodebypass", @"/var/jb/usr/bin/%@" ],
+      @[ @"/var/jb/Applications/vnodebypass.app/vnodebypass", @"/var/jb/Applications/vnodebypass.app/%@" ],
+      @[ @"/var/jb/Applications/vnodebypass.app", @"/var/jb/Applications/%@.app" ],
+      @[ @"/var/jb/usr/share/vnodebypass", @"/var/jb/usr/share/%@" ]
     ];
 
     for (NSArray *rename in renames) {
@@ -56,16 +56,16 @@ int main(int argc, char *argv[], char *envp[]) {
     }
 
     NSString *dpkgInfo =
-        [NSString stringWithContentsOfFile:@"/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
+        [NSString stringWithContentsOfFile:@"/var/jb/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
                                   encoding:NSUTF8StringEncoding
                                      error:nil];
     dpkgInfo = [dpkgInfo stringByReplacingOccurrencesOfString:@"vnodebypass" withString:randomName];
-    [dpkgInfo writeToFile:@"/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
+    [dpkgInfo writeToFile:@"/var/jb/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
                atomically:YES
                  encoding:NSUTF8StringEncoding
                     error:nil];
 
-    task.arguments = @[ @"-p", [NSString stringWithFormat:@"/Applications/%@.app", randomName] ];
+    task.arguments = @[ @"-p", [NSString stringWithFormat:@"/var/jb/Applications/%@.app", randomName] ];
     [task launch];
     [task waitUntilExit];
     return 0;

@@ -33,7 +33,7 @@
   _button = [UIButton buttonWithType:UIButtonTypeSystem];
   _button.frame = CGRectMake(UIScreen.mainScreen.bounds.size.width / 2 - 30,
                              UIScreen.mainScreen.bounds.size.height / 2 - 25, 60, 50);
-  [_button setTitle:access("/bin/bash", F_OK) == 0 ? @"Enable" : @"Disable"
+  [_button setTitle:access("/var/jb/bin/bash", F_OK) == 0 ? @"Enable" : @"Disable"
            forState:UIControlStateNormal];
   [_button addTarget:self
                 action:@selector(buttonPressed:)
@@ -42,7 +42,7 @@
 }
 
 - (void)buttonPressed:(UIButton *)sender {
-  BOOL disabled = access("/bin/bash", F_OK) == 0;
+  BOOL disabled = access("/var/jb/bin/bash", F_OK) == 0;
   NSArray *opts;
   if (disabled) {
     opts = @[ @"-s", @"-h" ];
@@ -51,13 +51,13 @@
   }
 
   NSString *launchPath =
-      [NSString stringWithFormat:@"/usr/bin/%@", NSProcessInfo.processInfo.processName];
+      [NSString stringWithFormat:@"/var/jb/usr/bin/%@", NSProcessInfo.processInfo.processName];
   NSTask *task = [NSTask launchedTaskWithLaunchPath:launchPath arguments:@[ opts[0] ]];
   [task waitUntilExit];
   task = [NSTask launchedTaskWithLaunchPath:launchPath arguments:@[ opts[1] ]];
   [task waitUntilExit];
-  NSString *title = access("/bin/bash", F_OK) == 0 ? @"Enable" : @"Disable";
-  NSString *successTitle = (access("/bin/bash", F_OK) == 0) == disabled ? @"Failed" : @"Success";
+  NSString *title = access("/var/jb/bin/bash", F_OK) == 0 ? @"Enable" : @"Disable";
+  NSString *successTitle = (access("/var/jb/bin/bash", F_OK) == 0) == disabled ? @"Failed" : @"Success";
   [_button setTitle:successTitle forState:UIControlStateNormal];
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     sleep(1);

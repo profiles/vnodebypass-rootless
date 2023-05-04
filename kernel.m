@@ -5,6 +5,8 @@
 #define kCFCoreFoundationVersionNumber_iOS_13_0_b2 (1656)
 #define kCFCoreFoundationVersionNumber_iOS_13_0_b1 (1652.20)
 #define kCFCoreFoundationVersionNumber_iOS_14_0_b1 (1740)
+#define kCFCoreFoundationVersionNumber_iOS_15_0 (1854)
+#define kCFCoreFoundationVersionNumber_iOS_15_2 (1856.105)
 
 uint32_t off_p_pid = 0;
 uint32_t off_p_pfd = 0;
@@ -16,6 +18,24 @@ uint32_t off_vnode_usecount = 0;
 uint32_t off_vnode_vflags = 0;
 
 int offset_init() {
+	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0) {
+        // ios 15
+        printf("iOS 15.x offset selected!!!\n");
+        off_p_pid = 0x68; //proc_pid v
+        off_p_pfd = 0x100;  //
+        off_fd_ofiles = 0x0; //?
+        off_fp_fglob = 0x10;
+        off_fg_data = 0x38; //_fg_get_vnode + 10, LDR X0, [X0,#0x38]
+        off_vnode_iocount = 0x64; //vnode_iocount v
+        off_vnode_usecount = 0x60; //vnode_usecount v
+        off_vnode_vflags = 0x54; //_vnode_isvroot, _vnode_issystem, _vnode_isswap... LDR W8, [X0,#0x54] v
+
+		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_2)
+			off_p_pfd = 0xd8; 
+
+        return 0;
+    }
+
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0_b1) {
 		// ios 14
 		printf("iOS 14.x offset selected!!!\n");
@@ -66,7 +86,13 @@ int offset_init() {
 uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 	uint64_t filedesc = kernel_read64(proc + off_p_pfd);
 	uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
-	uint64_t openedfile = kernel_read64(fileproc  + (sizeof(void*) * file_index));
+
+	uint64_t openedfile = 0;
+    if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0)
+        openedfile = kernel_read64(filedesc + (8 * file_index));
+    else
+        openedfile = kernel_read64(fileproc + (8 * file_index));
+
 	uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
 	uint64_t vnode = kernel_read64(fileglob + off_fg_data);
 
@@ -83,7 +109,11 @@ uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 #define VISSHADOW 0x008000
 void hide_path(uint64_t vnode){
 	uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
+	NSLog(@"[vnodebypasser] before -> v_flags = %x", v_flags);
 	kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
+	
+	v_flags = kernel_read32(vnode + off_vnode_vflags);
+	NSLog(@"[vnodebypasser] after -> v_flags = %x", v_flags);
 }
 
 void show_path(uint64_t vnode){

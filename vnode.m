@@ -15,7 +15,7 @@ __attribute__((constructor)) void initVnodeMemPath() {
 
 void initPath() {
   hidePathList = [NSArray
-      arrayWithContentsOfFile:[NSString stringWithFormat:@"/usr/share/%@/hidePathList.plist",
+      arrayWithContentsOfFile:[NSString stringWithFormat:@"/var/jb/usr/share/%@/hidePathList.plist",
                                                          NSProcessInfo.processInfo.processName]];
   if (hidePathList == nil) goto exit;
   for (id path in hidePathList) {

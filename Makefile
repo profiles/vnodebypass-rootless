@@ -7,6 +7,9 @@ THEOS_DEVICE_IP = 0.0.0.0 -p 2222
 TARGET := iphone:clang:latest:12.0
 ARCHS = arm64
 
+THEOS_PACKAGE_SCHEME = rootless
+THEOS_DEVICE_IP = 127.0.0.1 -p 2222
+
 include $(THEOS)/makefiles/common.mk
 
 TOOL_NAME = vnodebypass
