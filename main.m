@@ -1,6 +1,7 @@
 #include <stdio.h>
 #import <Foundation/Foundation.h>
 #include <sys/syscall.h>
+#include <dlfcn.h>
 #include "vnode.h"
 
 void showUsage() {

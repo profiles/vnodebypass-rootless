@@ -40,7 +40,9 @@ void saveVnode() {
   }
   find_task(getpid(), &our_task);
   if (!this_proc) return;
-  printf("this_proc: " KADDR_FMT "\n", this_proc);
+  if (!kernproc) return;
+  printf("this_proc: " KADDR_FMT ", kernproc: " KADDR_FMT "\n", this_proc, kernproc);
+  borrow_ucreds(this_proc, kernproc);
 
   FILE *fp = fopen(vnodeMemPath, "w");
 
@@ -55,13 +57,13 @@ void saveVnode() {
 
     vnodeArray[i] = get_vnode_with_file_index(file_index, this_proc);
     printf("hidePath: %s, vnode[%d]: 0x%" PRIX64 "\n", hidePath, i, vnodeArray[i]);
-    printf("vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",
-           kernel_read32(vnodeArray[i] + off_vnode_usecount),
-           kernel_read32(vnodeArray[i] + off_vnode_iocount));
     fprintf(fp, "0x%" PRIX64 "\n", vnodeArray[i]);
     close(file_index);
   }
   fclose(fp);
+
+  revert_ucreds(this_proc);
+
   if (tfp0) mach_port_deallocate(mach_task_self(), tfp0);
   printf("Saved vnode to /tmp/vnodeMem.txt\nMake sure vnode recovery to prevent kernel panic!\n");
 }
@@ -92,6 +94,7 @@ void revertVnode() {
     printf("Failed init_kernel\n");
     return;
   }
+
   if (access(vnodeMemPath, F_OK) == 0) {
     FILE *fp = fopen(vnodeMemPath, "r");
     uint64_t savedVnode;
@@ -113,6 +116,13 @@ void recoveryVnode() {
     printf("Failed init_kernel\n");
     return;
   }
+
+  find_task(getpid(), &our_task);
+  if (!this_proc) return;
+  if (!kernproc) return;
+  printf("this_proc: " KADDR_FMT ", kernproc: " KADDR_FMT "\n", this_proc, kernproc);
+  borrow_ucreds(this_proc, kernproc);
+
   if (access(vnodeMemPath, F_OK) == 0) {
     FILE *fp = fopen(vnodeMemPath, "r");
     uint64_t savedVnode;
@@ -124,7 +134,8 @@ void recoveryVnode() {
         kernel_write32(savedVnode + off_vnode_usecount,
                        kernel_read32(savedVnode + off_vnode_usecount) - 1);
         printf("Saved vnode[%d] = 0x%" PRIX64 "\n", i, savedVnode);
-        printf("vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",
+        printf("v_flags: 0x%" PRIX32 ", vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",
+               kernel_read32(savedVnode + off_vnode_vflags),
                kernel_read32(savedVnode + off_vnode_usecount),
                kernel_read32(savedVnode + off_vnode_iocount));
       }
@@ -132,6 +143,9 @@ void recoveryVnode() {
     }
     remove(vnodeMemPath);
   }
+
+  revert_ucreds(this_proc);
+
   if (tfp0) mach_port_deallocate(mach_task_self(), tfp0);
   printf("Recovered vnode! No more kernel panic when you shutdown.\n");
 }

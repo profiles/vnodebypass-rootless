@@ -19,6 +19,10 @@ int offset_init();
 //get vnode
 uint64_t get_vnode_with_file_index(int, uint64_t);
 
+//borrow ucreds
+void borrow_ucreds(uint64_t, uint64_t);
+void revert_ucreds(uint64_t);
+
 //hide and show file using vnode
 void hide_path(uint64_t);
 void show_path(uint64_t);

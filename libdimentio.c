@@ -169,8 +169,8 @@ static kwrite_func_t kwrite_buf;
 static krw_0_kread_func_t krw_0_kread;
 static krw_0_kwrite_func_t krw_0_kwrite;
 static bool has_proc_struct_sz, has_kalloc_array_decode, kalloc_array_decode_v2;
-static kaddr_t kernproc, proc_struct_sz_ptr, vm_kernel_link_addr;
-kaddr_t kbase, our_task, this_proc;
+static kaddr_t proc_struct_sz_ptr, vm_kernel_link_addr;
+kaddr_t kbase, our_task, this_proc, kernproc;
 static size_t proc_task_off, proc_p_pid_off, task_itk_space_off, io_dt_nvram_of_dict_off, ipc_port_ip_kobject_off;
 
 static uint32_t

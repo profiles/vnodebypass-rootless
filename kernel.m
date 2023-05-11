@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include <dlfcn.h>
 
 //set offset
 #define kCFCoreFoundationVersionNumber_iOS_12_0    (1535.12)
@@ -16,6 +17,8 @@ uint32_t off_fg_data = 0;
 uint32_t off_vnode_iocount = 0;
 uint32_t off_vnode_usecount = 0;
 uint32_t off_vnode_vflags = 0;
+uint32_t off_p_ucred = 0;
+uint64_t savedThisProcUcreds = 0;
 
 int offset_init() {
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0) {
@@ -29,9 +32,12 @@ int offset_init() {
         off_vnode_iocount = 0x64; //vnode_iocount v
         off_vnode_usecount = 0x60; //vnode_usecount v
         off_vnode_vflags = 0x54; //_vnode_isvroot, _vnode_issystem, _vnode_isswap... LDR W8, [X0,#0x54] v
+		off_p_ucred = 0xD8;
 
-		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_2)
+		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_2) {
 			off_p_pfd = 0xd8; 
+			off_p_ucred = 0x0;
+		}
 
         return 0;
     }
@@ -84,23 +90,47 @@ int offset_init() {
 
 //get vnode
 uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
-	uint64_t filedesc = kernel_read64(proc + off_p_pfd);
-	uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
 
-	uint64_t openedfile = 0;
-    if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0)
-        openedfile = kernel_read64(filedesc + (8 * file_index));
-    else
-        openedfile = kernel_read64(fileproc + (8 * file_index));
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_run_unsandboxed = dlsym(libjb, "run_unsandboxed");
+	printf("libjb_run_unsandboxed: %p\n", libjb_run_unsandboxed);
 
-	uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
-	uint64_t vnode = kernel_read64(fileglob + off_fg_data);
+	printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
 
-	uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
-	uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
+	void (*run_unsandboxed)(void (^block)(void)) = libjb_run_unsandboxed;
 
-	kernel_write32(vnode + off_vnode_usecount, usecount + 1);
-	kernel_write32(vnode + off_vnode_iocount, iocount + 1);
+	static uint64_t vnode = 0;
+	run_unsandboxed(^{
+		printf("borrow_ucreds: changed -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+		uint64_t filedesc = kernel_read64(proc + off_p_pfd);
+		uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
+
+		uint64_t openedfile = 0;
+    	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0)
+        	openedfile = kernel_read64(filedesc + (8 * file_index));
+    	else
+        	openedfile = kernel_read64(fileproc + (8 * file_index));
+
+		uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
+		vnode = kernel_read64(fileglob + off_fg_data);
+
+		uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
+		uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
+
+		printf("get_vnode_with_file_index: before -> usecount = 0x%x, iocount = 0x%x\n", usecount, iocount);
+
+		kernel_write32(vnode + off_vnode_usecount, usecount + 1);
+		kernel_write32(vnode + off_vnode_iocount, iocount + 1);
+
+		printf("get_vnode_with_file_index: after -> usecount = 0x%x, iocount = 0x%x\n", kernel_read32(vnode + off_vnode_usecount), kernel_read32(vnode + off_vnode_iocount));
+
+	});
+
+	printf("borrow_ucreds: reverted -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+	dlclose(libjb);
 
 	return vnode;
 }
@@ -108,12 +138,112 @@ uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 //hide and show file using vnode
 #define VISSHADOW 0x008000
 void hide_path(uint64_t vnode){
-	uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
-	NSLog(@"[vnodebypasser] before -> v_flags = %x", v_flags);
-	kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
+
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_run_unsandboxed = dlsym(libjb, "run_unsandboxed");
+	printf("libjb_run_unsandboxed: %p\n", libjb_run_unsandboxed);
+
+	printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+	void (*run_unsandboxed)(void (^block)(void)) = libjb_run_unsandboxed;
+
+	run_unsandboxed(^{
+		printf("borrow_ucreds: changed -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+		uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
+		printf("hide_path: before -> v_flags = %x\n", v_flags);
+		kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
 	
-	v_flags = kernel_read32(vnode + off_vnode_vflags);
-	NSLog(@"[vnodebypasser] after -> v_flags = %x", v_flags);
+		v_flags = kernel_read32(vnode + off_vnode_vflags);
+		printf("hide_path: after -> v_flags = %x\n", v_flags);
+	});
+}
+
+void borrow_ucreds(uint64_t this_proc, uint64_t kern_proc) {
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_run_unsandboxed = dlsym(libjb, "run_unsandboxed");
+	// printf("libjb_run_unsandboxed: %p\n", libjb_run_unsandboxed);
+
+	// printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+	// void (*run_unsandboxed)(void (^block)(void)) = libjb_run_unsandboxed;
+
+	// run_unsandboxed(^{
+	// 	printf("borrow_ucreds: changed -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+	// });
+
+	// printf("borrow_ucreds: reverted -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+
+	// dlclose(libjb);
+
+	// uint64_t this_ucreds = kernel_read64(this_proc + off_p_ucred);
+	// uint64_t kern_ucreds = kernel_read64(kern_proc + off_p_ucred);
+	// printf("borrow_ucreds: before -> this_ucreds = 0x%llx, kern_ucreds = 0x%llx\n", this_ucreds, kern_ucreds);
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_proc_set_ucred = dlsym(libjb, "proc_set_ucred");
+	// printf("libjb_proc_set_ucred: %p\n", libjb_proc_set_ucred);
+	// void (*proc_set_ucred)(uint64_t proc_ptr, uint64_t ucred_ptr) = libjb_proc_set_ucred;
+	// proc_set_ucred(this_proc, kern_ucreds);
+
+	// savedThisProcUcreds = this_ucreds;
+	// printf("borrow_ucreds: after -> this_ucreds = 0x%llx, kern_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred), kernel_read64(kern_proc + off_p_ucred));
+	// dlclose(libjb);
+
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_kwrite_ptr = dlsym(libjb, "kwrite_ptr");
+	// printf("libjb_kwrite_ptr: %p\n", libjb_kwrite_ptr);
+	// void (*kwrite_ptr)(uint64_t kaddr, uint64_t pointer, uint16_t salt) = libjb_kwrite_ptr;
+
+	// uint64_t this_ucreds = kernel_read64(this_proc + off_p_ucred);
+	// uint64_t kern_ucreds = kernel_read64(kern_proc + off_p_ucred);
+
+	// printf("borrow_ucreds: before -> this_ucreds = 0x%llx, kern_ucreds = 0x%llx\n", this_ucreds, kern_ucreds);
+
+	// kwrite_ptr(this_proc + off_p_ucred, kern_ucreds, 0x84E8);
+
+	// printf("borrow_ucreds: after -> this_ucreds = 0x%llx, kern_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred), kernel_read64(kern_proc + off_p_ucred));
+
+	// savedThisProcUcreds = this_ucreds;
+	
+	// dlclose(libjb);
+}
+
+void revert_ucreds(uint64_t this_proc) {
+	// uint64_t this_ucreds = kernel_read64(this_proc + off_p_ucred);
+	// printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", this_ucreds);
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_proc_set_ucred = dlsym(libjb, "proc_set_ucred");
+	// printf("libjb_proc_set_ucred: %p\n", libjb_proc_set_ucred);
+	// void (*proc_set_ucred)(uint64_t proc_ptr, uint64_t ucred_ptr) = libjb_proc_set_ucred;
+	// proc_set_ucred(this_proc, savedThisProcUcreds);
+
+	// savedThisProcUcreds = 0;
+	// printf("borrow_ucreds: after -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
+	// dlclose(libjb);
+
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_kwrite_ptr = dlsym(libjb, "kwrite_ptr");
+	// printf("libjb_kwrite_ptr: %p\n", libjb_kwrite_ptr);
+	// void (*kwrite_ptr)(uint64_t kaddr, uint64_t pointer, uint16_t salt) = libjb_kwrite_ptr;
+
+	// uint64_t this_ucreds = kernel_read64(this_proc + off_p_ucred);
+	// printf("revert_ucreds: before -> this_ucreds = 0x%llx\n", this_ucreds);
+	// kwrite_ptr(this_proc + off_p_ucred, savedThisProcUcreds, 0x84E8);
+	// printf("revert_ucreds: after -> this_ucreds = 0x%llx\n", this_ucreds);
+
+	// savedThisProcUcreds = 0;
+	// dlclose(kwrite_ptr);
 }
 
 void show_path(uint64_t vnode){
