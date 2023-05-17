@@ -27,4 +27,10 @@ void revert_ucreds(uint64_t);
 void hide_path(uint64_t);
 void show_path(uint64_t);
 
+//kcall
+void vnode_put(uint64_t vnode);
+void vnode_rele(uint64_t vnode);
+void vnode_get(uint64_t vnode);
+void vnode_ref(uint64_t vnode);
+
 int init_kernel();

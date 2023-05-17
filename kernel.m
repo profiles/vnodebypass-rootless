@@ -88,9 +88,91 @@ int offset_init() {
 	return -1;
 }
 
+uint64_t getKslide(void) {
+	return kbase - 0xFFFFFFF007004000;
+}
+
+void vnode_lock(uint64_t vnode) {
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007D1A4EC, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
+void vnode_unlock(uint64_t vnode) {
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007D1B078, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
+//Decrement the iocount on a vnode.
+void vnode_put(uint64_t vnode) {
+	// uint64_t kcall(uint64_t func, uint64_t argc, uint64_t *argv)
+	// kcall(bootInfo_getSlidUInt64(@"proc_rele"), 1, (uint64_t[]){proc});
+
+	// uint64_t v_lock = vnode;
+	// printf("v_lock: 0x%llx\n", v_lock);
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007DAE658, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
+//Decrement the usecount on a vnode.
+void vnode_rele(uint64_t vnode) {
+	// uint64_t v_lock = vnode;
+	// printf("v_lock: 0x%llx\n", v_lock);
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007DB1334, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
+
+//Increment the iocount on a vnode.
+void vnode_get(uint64_t vnode) {
+	// uint64_t kcall(uint64_t func, uint64_t argc, uint64_t *argv)
+	// kcall(bootInfo_getSlidUInt64(@"proc_rele"), 1, (uint64_t[]){proc});
+
+	// uint64_t v_lock = vnode;
+	// printf("v_lock: 0x%llx\n", v_lock);
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007DB45AC, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
+//Increment the usecount on a vnode.
+void vnode_ref(uint64_t vnode) {
+	// uint64_t v_lock = vnode;
+	// printf("v_lock: 0x%llx\n", v_lock);
+	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	printf("libjb: %p\n", libjb);
+	void *libjb_kcall = dlsym(libjb, "kcall");
+	printf("libjb_kcall: %p\n", libjb_kcall);
+	uint64_t (*kcall_)(uint64_t func, uint64_t argc, uint64_t *argv) = libjb_kcall;
+	kcall_(getKslide() + 0xFFFFFFF007DB2808, 1, (uint64_t[]){vnode});
+	dlclose(libjb);
+}
+
 //get vnode
 uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
-
 	uint64_t filedesc = kernel_read64(proc + off_p_pfd);
 	uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
 
@@ -103,11 +185,16 @@ uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 	uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
 	uint64_t vnode = kernel_read64(fileglob + off_fg_data);
 
-	uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
-	uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
+	// uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
+	// uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
 
-	kernel_write32(vnode + off_vnode_usecount, usecount + 1);
-	kernel_write32(vnode + off_vnode_iocount, iocount + 1);
+	vnode_ref(vnode);
+	vnode_get(vnode);
+
+	// kernel_write32(vnode + off_vnode_usecount, usecount + 1);
+	// kernel_write32(vnode + off_vnode_iocount, iocount + 1);
+	printf("usecount: 0x%u\n", kernel_read32(vnode + off_vnode_usecount));
+	printf("iocount: 0x%u\n", kernel_read32(vnode + off_vnode_iocount));
 
 	return vnode;
 }
@@ -116,7 +203,9 @@ uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 #define VISSHADOW 0x008000
 void hide_path(uint64_t vnode){
 	uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
+	// vnode_lock(vnode);
 	kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
+	// vnode_unlock(vnode);
 }
 
 void borrow_ucreds(uint64_t this_proc, uint64_t kern_proc) {
@@ -207,7 +296,9 @@ void revert_ucreds(uint64_t this_proc) {
 
 void show_path(uint64_t vnode){
 	uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
+	// vnode_lock(vnode);
 	kernel_write32(vnode + off_vnode_vflags, (v_flags &= ~VISSHADOW));
+	// vnode_unlock(vnode);
 }
 
 int init_kernel() {
