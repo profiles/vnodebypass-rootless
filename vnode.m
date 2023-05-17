@@ -134,8 +134,7 @@ void recoveryVnode() {
         kernel_write32(savedVnode + off_vnode_usecount,
                        kernel_read32(savedVnode + off_vnode_usecount) - 1);
         printf("Saved vnode[%d] = 0x%" PRIX64 "\n", i, savedVnode);
-        printf("v_flags: 0x%" PRIX32 ", vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",
-               kernel_read32(savedVnode + off_vnode_vflags),
+        printf("vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",
                kernel_read32(savedVnode + off_vnode_usecount),
                kernel_read32(savedVnode + off_vnode_iocount));
       }

@@ -3,5 +3,12 @@
 <plist version="1.0">
 <array>
 	<string>/tmp/vnodetest.txt</string>
+	<string>/private/var/jb</string>
+	<string>/cores/binpack</string>
+	<string>/cores/dyld</string>
+	<string>/cores/fs</string>
+	<string>/cores/injector.dylib</string>
+	<string>/cores/jb.dylib</string>
+	<string>/cores/jbloader</string>
 </array>
 </plist>

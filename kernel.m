@@ -35,8 +35,8 @@ int offset_init() {
 		off_p_ucred = 0xD8;
 
 		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_2) {
-			off_p_pfd = 0xd8; 
-			off_p_ucred = 0x0;
+			off_p_pfd = 0xf8; 
+			off_p_ucred = 0x20;
 		}
 
         return 0;
@@ -91,46 +91,23 @@ int offset_init() {
 //get vnode
 uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 
-	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
-	printf("libjb: %p\n", libjb);
-	void *libjb_run_unsandboxed = dlsym(libjb, "run_unsandboxed");
-	printf("libjb_run_unsandboxed: %p\n", libjb_run_unsandboxed);
+	uint64_t filedesc = kernel_read64(proc + off_p_pfd);
+	uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
 
-	printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
-
-	void (*run_unsandboxed)(void (^block)(void)) = libjb_run_unsandboxed;
-
-	static uint64_t vnode = 0;
-	run_unsandboxed(^{
-		printf("borrow_ucreds: changed -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
-
-		uint64_t filedesc = kernel_read64(proc + off_p_pfd);
-		uint64_t fileproc = kernel_read64(filedesc + off_fd_ofiles);
-
-		uint64_t openedfile = 0;
+	uint64_t openedfile = 0;
     	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0)
         	openedfile = kernel_read64(filedesc + (8 * file_index));
     	else
         	openedfile = kernel_read64(fileproc + (8 * file_index));
 
-		uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
-		vnode = kernel_read64(fileglob + off_fg_data);
+	uint64_t fileglob = kernel_read64(openedfile + off_fp_fglob);
+	uint64_t vnode = kernel_read64(fileglob + off_fg_data);
 
-		uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
-		uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
+	uint32_t usecount = kernel_read32(vnode + off_vnode_usecount);
+	uint32_t iocount = kernel_read32(vnode + off_vnode_iocount);
 
-		printf("get_vnode_with_file_index: before -> usecount = 0x%x, iocount = 0x%x\n", usecount, iocount);
-
-		kernel_write32(vnode + off_vnode_usecount, usecount + 1);
-		kernel_write32(vnode + off_vnode_iocount, iocount + 1);
-
-		printf("get_vnode_with_file_index: after -> usecount = 0x%x, iocount = 0x%x\n", kernel_read32(vnode + off_vnode_usecount), kernel_read32(vnode + off_vnode_iocount));
-
-	});
-
-	printf("borrow_ucreds: reverted -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
-
-	dlclose(libjb);
+	kernel_write32(vnode + off_vnode_usecount, usecount + 1);
+	kernel_write32(vnode + off_vnode_iocount, iocount + 1);
 
 	return vnode;
 }
@@ -138,26 +115,8 @@ uint64_t get_vnode_with_file_index(int file_index, uint64_t proc) {
 //hide and show file using vnode
 #define VISSHADOW 0x008000
 void hide_path(uint64_t vnode){
-
-	void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
-	printf("libjb: %p\n", libjb);
-	void *libjb_run_unsandboxed = dlsym(libjb, "run_unsandboxed");
-	printf("libjb_run_unsandboxed: %p\n", libjb_run_unsandboxed);
-
-	printf("borrow_ucreds: before -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
-
-	void (*run_unsandboxed)(void (^block)(void)) = libjb_run_unsandboxed;
-
-	run_unsandboxed(^{
-		printf("borrow_ucreds: changed -> this_ucreds = 0x%llx\n", kernel_read64(this_proc + off_p_ucred));
-
-		uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
-		printf("hide_path: before -> v_flags = %x\n", v_flags);
-		kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
-	
-		v_flags = kernel_read32(vnode + off_vnode_vflags);
-		printf("hide_path: after -> v_flags = %x\n", v_flags);
-	});
+	uint32_t v_flags = kernel_read32(vnode + off_vnode_vflags);
+	kernel_write32(vnode + off_vnode_vflags, (v_flags | VISSHADOW));
 }
 
 void borrow_ucreds(uint64_t this_proc, uint64_t kern_proc) {
@@ -275,6 +234,23 @@ int init_kernel() {
 		printf("offset init failed: %d\n", err);
 		return 1;
 	}
+
+	// void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
+	// printf("libjb: %p\n", libjb);
+	// void *libjb_kreadbuf = dlsym(libjb, "kreadbuf");
+	// printf("libjb_kreadbuf: %p\n", libjb_kreadbuf);
+	// int (*kreadbuf)(uint64_t kaddr, void* output, size_t size) = libjb_kreadbuf;
+
+	// uint64_t v = 0;
+	// kreadbuf(kbase, &v, sizeof(v));
+	// printf("physread64 base: 0x%llx\n", v);
+
+	//int kreadbuf(uint64_t kaddr, void* output, size_t size)
+	// int physreadbuf(uint64_t physaddr, void* output, size_t size)
+	// uint64_t magicPage = 0;
+	// int ret = handoffPPLPrimitives(getpid(), &magicPage);
+	// printf("handoffPPLPrimitives ret: %dm magicPage: 0x%llx\n", ret, magicPage);
+
 
 	return 0;
 }
