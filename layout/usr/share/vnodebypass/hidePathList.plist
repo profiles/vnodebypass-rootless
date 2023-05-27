@@ -3,6 +3,8 @@
 <plist version="1.0">
 <array>
 	<string>/var/jb/bin/bash</string>
-	<string>/var/jb/usr/bin/uname</string>
+	<string>/Applications/MobileTimer.app/en.lproj/Localizable.strings</string>
+	<string>/Applications/MobileTimer.app/ja.lproj/Localizable.strings</string>
+	<string>/Applications/MobileTimer.app/ko.lproj/Localizable.strings</string>
 </array>
 </plist>
