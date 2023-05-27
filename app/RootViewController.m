@@ -1,4 +1,5 @@
 #import "RootViewController.h"
+#import <spawn.h>
 
 @interface RootViewController ()
 @end
@@ -41,21 +42,46 @@
   [self.view addSubview:_button];
 }
 
-- (void)buttonPressed:(UIButton *)sender {
-  BOOL disabled = access("/var/jb/bin/bash", F_OK) == 0;
-  NSArray *opts;
-  if (disabled) {
-    opts = @[ @"-s", @"-h" ];
-  } else {
-    opts = @[ @"-r", @"-R" ];
+-(void)waitUntilDone:(pid_t)pid{
+  siginfo_t info;
+  while (waitid(P_PID, pid, &info, WEXITED | WSTOPPED | WCONTINUED) == -1) {
+    if (errno != EINTR) {
+      break;
+    }
   }
 
-  NSString *launchPath =
-      [NSString stringWithFormat:@"/var/jb/usr/bin/%@", NSProcessInfo.processInfo.processName];
-  NSTask *task = [NSTask launchedTaskWithLaunchPath:launchPath arguments:@[ opts[0] ]];
-  [task waitUntilExit];
-  task = [NSTask launchedTaskWithLaunchPath:launchPath arguments:@[ opts[1] ]];
-  [task waitUntilExit];
+  if (info.si_code == CLD_EXITED) {
+    // int exit_status = info.si_status;
+  } else if (info.si_code == CLD_KILLED) {
+    // int signal_number = info.si_status;
+  }
+}
+
+- (void)buttonPressed:(UIButton *)sender {
+  BOOL disabled = access("/var/jb/bin/bash", F_OK) == 0;
+  
+  NSString *launchPath = [NSString stringWithFormat:@"/var/jb/usr/bin/%@", NSProcessInfo.processInfo.processName];
+
+  pid_t pid;
+
+  if(disabled) {
+    const char* args[] = {NSProcessInfo.processInfo.processName.UTF8String, "-s", NULL};
+    posix_spawn(&pid, [launchPath UTF8String], NULL, NULL, (char* const*)args, NULL);
+    [self waitUntilDone:pid];
+
+    const char* args2[] = {NSProcessInfo.processInfo.processName.UTF8String, "-h", NULL};
+    posix_spawn(&pid, [launchPath UTF8String], NULL, NULL, (char* const*)args2, NULL);
+    [self waitUntilDone:pid];
+  } else {
+    const char* args[] = {NSProcessInfo.processInfo.processName.UTF8String, "-r", NULL};
+    posix_spawn(&pid, [launchPath UTF8String], NULL, NULL, (char* const*)args, NULL);
+    [self waitUntilDone:pid];
+
+    const char* args2[] = {NSProcessInfo.processInfo.processName.UTF8String, "-R", NULL};
+    posix_spawn(&pid, [launchPath UTF8String], NULL, NULL, (char* const*)args2, NULL);
+    [self waitUntilDone:pid];
+  }
+
   NSString *title = access("/var/jb/bin/bash", F_OK) == 0 ? @"Enable" : @"Disable";
   NSString *successTitle = (access("/var/jb/bin/bash", F_OK) == 0) == disabled ? @"Failed" : @"Success";
   [_button setTitle:successTitle forState:UIControlStateNormal];
