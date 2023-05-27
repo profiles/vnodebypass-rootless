@@ -119,9 +119,9 @@ void recoveryVnode() {
     int i = 0;
     while (!feof(fp)) {
       if (fscanf(fp, "0x%" PRIX64 "\n", &savedVnode) == 1) {
-        kernel_write32(savedVnode + off_vnode_iocount,
+        kwrite32(savedVnode + off_vnode_iocount,
                        kernel_read32(savedVnode + off_vnode_iocount) - 1);
-        kernel_write32(savedVnode + off_vnode_usecount,
+        kwrite32(savedVnode + off_vnode_usecount,
                        kernel_read32(savedVnode + off_vnode_usecount) - 1);
         printf("Saved vnode[%d] = 0x%" PRIX64 "\n", i, savedVnode);
         printf("vnode_usecount: 0x%" PRIX32 ", vnode_iocount: 0x%" PRIX32 "\n",

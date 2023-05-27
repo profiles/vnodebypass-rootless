@@ -29,4 +29,8 @@ void vnode_rele(uint64_t vnode);
 void vnode_get(uint64_t vnode);
 void vnode_ref(uint64_t vnode);
 
+//kernel write
+void kwrite32(uint64_t va, uint32_t v);
+void kwrite64(uint64_t va, uint64_t v);
+
 int init_kernel();
