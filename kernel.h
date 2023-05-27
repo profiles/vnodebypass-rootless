@@ -23,12 +23,6 @@ uint64_t get_vnode_with_file_index(int, uint64_t);
 void hide_path(uint64_t);
 void show_path(uint64_t);
 
-//kcall
-void vnode_put(uint64_t vnode);
-void vnode_rele(uint64_t vnode);
-void vnode_get(uint64_t vnode);
-void vnode_ref(uint64_t vnode);
-
 //kernel write
 void kwrite32(uint64_t va, uint32_t v);
 void kwrite64(uint64_t va, uint64_t v);
