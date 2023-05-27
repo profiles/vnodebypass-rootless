@@ -73,7 +73,7 @@ void kwrite32(uint64_t va, uint32_t v) {
 	if(isArm64e()) {
 		void *libjb = dlopen("/var/jb/basebin/libjailbreak.dylib", RTLD_NOW);
 		// printf("libjb: %p\n", libjb);
-		void *libjb_kwrite32 = dlsym(libjb, "kwrite64");
+		void *libjb_kwrite32 = dlsym(libjb, "kwrite32");
 		int (*kwrite32_)(uint64_t va, uint32_t v) = libjb_kwrite32;
 		kwrite32_(va, v);
 		dlclose(libjb);
