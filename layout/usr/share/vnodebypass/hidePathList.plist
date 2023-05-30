@@ -20,7 +20,11 @@
 	<string>/var/mobile/Library/Filza</string>
 	<string>/var/mobile/Library/Sileo/sileo.sqlite3</string>
 	<string>/var/mobile/Library/Sileo</string>
+	<string>/var/mobile/Library/WebKit/org.coolstar.SileoStore</string>
+	<string>/var/mobile/Library/WebKit/xyz.willy.Zebra</string>
 	<!-- Not really exist, but added anyway. My JB History has been started a long long ago... since 2011 -->
+	<string>/var/mobile/Library/Fonts/AddedFontCache.plist</string>
+	<string>/var/dropbear</string>
 	<string>/var/cache/apt</string>
 	<string>/var/cache/clutch_cracked.plist</string>
 	<string>/var/cache/clutch.plist</string>
