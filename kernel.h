@@ -28,3 +28,4 @@ void kwrite32(uint64_t va, uint32_t v);
 void kwrite64(uint64_t va, uint64_t v);
 
 int init_kernel();
+bool isArm64e(void);

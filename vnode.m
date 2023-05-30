@@ -1,16 +1,26 @@
 #include "vnode.h"
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 #include "SVC_Caller.h"
 #include "kernel.h"
 #include "libdimentio.h"
 
-const char *vnodeMemPath;
-NSArray *hidePathList = nil;
-
 __attribute__((constructor)) void initVnodeMemPath() {
   vnodeMemPath =
       [NSString stringWithFormat:@"/tmp/%@.txt", NSProcessInfo.processInfo.processName].UTF8String;
+}
+
+__attribute__((constructor)) void initProcursusPath() {
+  NSString *kernelPath = [NSString stringWithUTF8String: get_boot_path()];
+  NSArray *components = [kernelPath componentsSeparatedByString:@"/"];
+  NSString *ret = [NSString stringWithFormat:@"/%@/%@/%@/", components[1], components[2], components[3]];
+
+  NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:ret error:nil];
+  for(NSString *jbfolder in contents) {
+    if([jbfolder hasPrefix:@"jb-"]) {
+      ret = [ret stringByAppendingString:jbfolder];
+    }
+  }
+  ret = [ret stringByAppendingString:@"/procursus"];
+  procursusPath = ret;
 }
 
 void initPath() {

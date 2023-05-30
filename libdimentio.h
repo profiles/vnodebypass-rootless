@@ -58,4 +58,6 @@ uint64_t kernel_read64(uint64_t);
 //write kernel
 void kernel_write32(uint64_t, uint32_t);
 void kernel_write64(uint64_t, uint64_t);
+
+char * get_boot_path(void);
 #endif

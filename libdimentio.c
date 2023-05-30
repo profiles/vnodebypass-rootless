@@ -692,7 +692,7 @@ pfinder_init_file(pfinder_t *pfinder, const char *filename) {
     return ret;
 }
 
-static char *
+char *
 get_boot_path(void) {
     size_t path_len = sizeof(BOOT_PATH);
 #if TARGET_OS_OSX

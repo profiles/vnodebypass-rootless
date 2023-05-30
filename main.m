@@ -3,6 +3,7 @@
 #include <sys/syscall.h>
 #include <dlfcn.h>
 #include "vnode.h"
+#include "kernel.h"
 
 void showUsage() {
 	printf("Usage: vnodebypass [OPTION]...\n");
@@ -21,7 +22,10 @@ int main(int argc, char *argv[], char *envp[]) {
 
 	if(getuid() != 0 && getgid() != 0) {
 		printf("Require vnodebypass to be run as root!\n");
-		return -1;
+		if(isArm64e())
+			printf("Seems like you're using Dopamine, so continue anyway.\n");
+		else
+			return -1;
 	}
 
 	if (argc != 2) {
