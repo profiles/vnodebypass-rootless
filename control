@@ -6,7 +6,7 @@ Depends: firmware (>= 15.0), firmware (<< 16.0), com.opa334.ccsupport
 Section: System
 Version: 0.3.1
 Architecture: iphoneos-arm
-Description: An expermental tool to hide jailbreak files for bypass detection.
+Description: An expermental tool to hide jailbreak files for bypass detection. (Only iOS 15/rootless)
 Depiction: https://cydia.ichitaso.com/depiction/vnodebypass.html
 Tag: role::hacker, compatible::ios15
 Icon: https://raw.githubusercontent.com/ichitaso/vnodebypass_theme/main/layout/Library/Themes/vnodebypass.theme/Icon.png
