@@ -2,9 +2,7 @@ GO_EASY_ON_ME = 1
 DEBUG = 0
 FINALPACKAGE = 1
 
-THEOS_DEVICE_IP = 0.0.0.0 -p 2222
-
-TARGET := iphone:clang:latest:12.0
+TARGET := iphone:clang:14.5:14.5
 ARCHS = arm64
 
 THEOS_PACKAGE_SCHEME = rootless
@@ -23,6 +21,7 @@ vnodebypass_FRAMEWORKS = IOKit
 include $(THEOS_MAKE_PATH)/tool.mk
 SUBPROJECTS += app
 SUBPROJECTS += debian-script
+SUBPROJECTS += VBModule
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
 before-package::
