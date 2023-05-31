@@ -36,11 +36,18 @@ int main(int argc, char *argv[], char *envp[]) {
     appInfo[@"CFBundleExecutable"] = randomName;
     [appInfo writeToFile:@"/var/jb/Applications/vnodebypass.app/Info.plist" atomically:YES];
 
+    NSMutableDictionary *moduleInfo = [NSMutableDictionary
+        dictionaryWithContentsOfFile:@"/var/jb/Library/ControlCenter/Bundles/VBModule.bundle/Info.plist"];
+    moduleInfo[@"CFBundleExecutable"] = randomName;
+    [moduleInfo writeToFile:@"/var/jb/Library/ControlCenter/Bundles/VBModule.bundle/Info.plist" atomically:YES];
+
     NSArray *renames = @[
       @[ @"/var/jb/usr/bin/vnodebypass", @"/var/jb/usr/bin/%@" ],
       @[ @"/var/jb/Applications/vnodebypass.app/vnodebypass", @"/var/jb/Applications/vnodebypass.app/%@" ],
       @[ @"/var/jb/Applications/vnodebypass.app", @"/var/jb/Applications/%@.app" ],
-      @[ @"/var/jb/usr/share/vnodebypass", @"/var/jb/usr/share/%@" ]
+      @[ @"/var/jb/usr/share/vnodebypass", @"/var/jb/usr/share/%@" ],
+      @[ @"/var/jb/Library/ControlCenter/Bundles/VBModule.bundle/VBModule", @"/var/jb/Library/ControlCenter/Bundles/VBModule.bundle/%@" ],
+      @[ @"/var/jb/Library/ControlCenter/Bundles/VBModule.bundle", @"/var/jb/Library/ControlCenter/Bundles/%@.bundle" ]
     ];
 
     for (NSArray *rename in renames) {
@@ -60,6 +67,7 @@ int main(int argc, char *argv[], char *envp[]) {
                                   encoding:NSUTF8StringEncoding
                                      error:nil];
     dpkgInfo = [dpkgInfo stringByReplacingOccurrencesOfString:@"vnodebypass" withString:randomName];
+    dpkgInfo = [dpkgInfo stringByReplacingOccurrencesOfString:@"VBModule" withString:randomName];
     [dpkgInfo writeToFile:@"/var/jb/var/lib/dpkg/info/kr.xsf1re.vnodebypass.list"
                atomically:YES
                  encoding:NSUTF8StringEncoding
